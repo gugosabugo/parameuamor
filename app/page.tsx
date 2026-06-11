@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { Heart } from 'lucide-react';
 import { Quicksand } from 'next/font/google';
 import Image from 'next/image';
 
-// Carrega a fonte diretamente no componente para garantir que ela aplique perfeitamente
 const quicksand = Quicksand({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
@@ -53,12 +52,6 @@ export default function Surpresa() {
     };
   }, []);
 
-  const handleDragEnd = (event: any, info: { offset: { x: number; }; }) => {
-    if (info.offset.x > 120 || info.offset.x < -120) {
-      setCurrentIndex((prev) => prev + 1);
-    }
-  };
-
   return (
     <main className={`min-h-screen bg-neutral-950 text-neutral-100 flex flex-col items-center justify-center overflow-hidden antialiased selection:bg-rose-500/30 ${quicksand.className}`}>
       <AnimatePresence mode="wait">
@@ -67,7 +60,7 @@ export default function Surpresa() {
         {stage === 'heart' && (
           <motion.div
             key="heart-stage"
-            className="fixed inset-0 flex items-center justify-center bg-black z-50"
+            className="fixed inset-0 flex items-center justify-center bg-black z-50 transform-gpu"
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
           >
@@ -86,7 +79,7 @@ export default function Surpresa() {
         {stage === 'iloveyou' && (
           <motion.div
             key="text-stage"
-            className="fixed inset-0 flex items-center justify-center bg-rose-600 z-40"
+            className="fixed inset-0 flex items-center justify-center bg-rose-600 z-40 transform-gpu"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, backgroundColor: '#0a0a0a' }}
@@ -113,7 +106,7 @@ export default function Surpresa() {
             className="w-full h-full flex flex-col items-center justify-center px-6 absolute inset-0"
           >
             {/* Cabeçalho */}
-            <header className="absolute top-10 text-center flex flex-col items-center z-10">
+            <header className="absolute top-10 text-center flex flex-col items-center z-50">
               <span className="text-[10px] tracking-[0.4em] text-neutral-500 uppercase font-bold mb-2">
                 nois junto
               </span>
@@ -123,7 +116,7 @@ export default function Surpresa() {
               </div>
             </header>
 
-            {/* Container da Pilha (Cards Quadrados) */}
+            {/* Container da Pilha */}
             <div className="relative w-full max-w-[340px] aspect-square flex items-center justify-center mt-8">
               <AnimatePresence>
                 {currentIndex < timelineData.length ? (
@@ -131,55 +124,20 @@ export default function Surpresa() {
                     .map((item, index) => {
                       if (index < currentIndex || index > currentIndex + 1) return null;
 
-                      const isTopCard = index === currentIndex;
-
                       return (
-                        <motion.div
-                          key={index}
-                          style={{ zIndex: timelineData.length - index }}
-                          initial={isTopCard ? false : { scale: 0.93, y: 16, opacity: 0.7 }}
-                          animate={
-                            isTopCard
-                              ? { scale: 1, y: 0, opacity: 1 }
-                              : { scale: 0.93, y: 16, opacity: 0.7 }
-                          }
-                          exit={{ x: [0, -400], opacity: 0, rotate: -15 }}
-                          transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-                          drag={isTopCard ? 'x' : false}
-                          dragConstraints={{ left: 0, right: 0 }}
-                          dragElastic={0.7}
-                          onDragEnd={handleDragEnd}
-                          className="absolute w-full h-full bg-neutral-950 border border-neutral-900 rounded-3xl overflow-hidden shadow-[0_10px_35px_rgba(0,0,0,0.6)] flex flex-col cursor-grab active:cursor-grabbing group select-none"
-                        >
-                          {/* Foto Quadrada */}
-                          <div className="relative w-full h-full bg-neutral-900 overflow-hidden">
-                            <Image
-                              src={item.img}
-                              alt={item.title}
-                              fill
-                              sizes="340px"
-                              className="object-cover grayscale group-hover:grayscale-0 transition-all duration-700 ease-out pointer-events-none"
-                              priority
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/20 to-transparent pointer-events-none" />
-                          </div>
-
-                          {/* Informações na base */}
-                          <div className="absolute bottom-0 inset-x-0 p-6 flex flex-col pointer-events-none">
-                            <span className="text-[10px] font-mono text-rose-500 font-bold tracking-widest mb-1">
-                              {item.date}
-                            </span>
-                            <h3 className="text-lg font-medium text-white tracking-wide leading-tight">
-                              {item.title}
-                            </h3>
-                          </div>
-                        </motion.div>
+                        <TimelineCard
+                          key={item.img}
+                          item={item}
+                          index={index}
+                          currentIndex={currentIndex}
+                          total={timelineData.length}
+                          onSwipeOut={() => setCurrentIndex((prev) => prev + 1)}
+                        />
                       );
                     })
                     .reverse()
                 ) : (
-                  
-                  /* TELA FINAL: Quando acabam as fotos */
+                  /* TELA FINAL */
                   <motion.div
                     key="final-screen"
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -198,9 +156,9 @@ export default function Surpresa() {
               </AnimatePresence>
             </div>
 
-            {/* Marcadores de bolinha na parte inferior */}
+            {/* Marcadores de bolinha */}
             {currentIndex < timelineData.length && (
-              <div className="absolute bottom-16 flex gap-1.5 z-10">
+              <div className="absolute bottom-16 flex gap-1.5 z-50">
                 {timelineData.map((_, i) => (
                   <div
                     key={i}
@@ -217,5 +175,78 @@ export default function Surpresa() {
 
       </AnimatePresence>
     </main>
+  );
+}
+
+{/* Sub-componente interno para gerenciar o Drag sem travar */}
+interface CardProps {
+  item: typeof timelineData[0];
+  index: number;
+  currentIndex: number;
+  total: number;
+  onSwipeOut: () => void;
+}
+
+function TimelineCard({ item, index, currentIndex, total, onSwipeOut }: CardProps) {
+  const isTopCard = index === currentIndex;
+  
+  // Controle dinâmico da posição X e rotação do card ativo
+  const x = useMotionValue(0);
+  const rotate = useTransform(x, [-200, 200], [-15, 15]);
+
+  const handleDragEnd = (_event: any, info: any) => {
+    if (!isTopCard) return;
+
+    // Se arrastou além do limite, força ele a continuar voando para fora antes de mudar o index
+    if (info.offset.x > 120) {
+      animate(x, 500, { type: 'spring', stiffness: 300, damping: 30 }).then(onSwipeOut);
+    } else if (info.offset.x < -120) {
+      animate(x, -500, { type: 'spring', stiffness: 300, damping: 30 }).then(onSwipeOut);
+    }
+  };
+
+  return (
+    <motion.div
+      style={{
+        zIndex: total - index,
+        x: isTopCard ? x : 0,
+        rotate: isTopCard ? rotate : 0,
+      }}
+      initial={isTopCard ? false : { scale: 0.93, y: 16, opacity: 0.7 }}
+      animate={
+        isTopCard
+          ? { scale: 1, y: 0, opacity: 1 }
+          : { scale: 0.93, y: 16, opacity: 0.7 }
+      }
+      transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+      drag={isTopCard ? 'x' : false}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.7}
+      onDragEnd={handleDragEnd}
+      className="absolute w-full h-full bg-neutral-950 border border-neutral-900 rounded-3xl overflow-hidden shadow-[0_10px_35px_rgba(0,0,0,0.6)] flex flex-col cursor-grab active:cursor-grabbing group select-none transform-gpu touch-none"
+    >
+      {/* Foto Quadrada */}
+      <div className="relative w-full h-full bg-neutral-900 overflow-hidden">
+        <Image
+          src={item.img}
+          alt={item.title}
+          fill
+          sizes="340px"
+          className="object-cover grayscale group-hover:grayscale-0 transition-opacity duration-500 ease-out pointer-events-none"
+          priority={index <= currentIndex + 1}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/20 to-transparent pointer-events-none" />
+      </div>
+
+      {/* Informações na base */}
+      <div className="absolute bottom-0 inset-x-0 p-6 flex flex-col pointer-events-none z-20">
+        <span className="text-[10px] font-mono text-rose-500 font-bold tracking-widest mb-1">
+          {item.date}
+        </span>
+        <h3 className="text-lg font-medium text-white tracking-wide leading-tight">
+          {item.title}
+        </h3>
+      </div>
+    </motion.div>
   );
 }
